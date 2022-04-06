@@ -1,0 +1,33 @@
+`timescale 1ns / 1ps
+
+module test_LFSR();
+
+reg clk = 0;
+always begin #5; clk <= ~clk; end
+reg reset = 0;
+reg [31:0]input_polynom;
+reg WE = 0;
+wire [31:0] outputLFSR;
+
+initial begin
+#200;
+reset <= 1; 
+#100; 
+reset <= 0; 
+WE <= 1;
+input_polynom <= 32'h80000057;
+#10;
+WE <= 0;
+end
+
+LFSR #(
+    .BITNES(32),
+    .TEST(5)
+) test_module(
+    .clk(clk),
+    .reset(reset),
+    .input_polynom(input_polynom),
+    .polynom_WE(WE),
+    .outputLFSR(outputLFSR)
+
+);
