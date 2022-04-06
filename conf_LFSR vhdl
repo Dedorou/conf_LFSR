@@ -1,0 +1,64 @@
+library IEEE;
+use IEEE.STD_LOGIC_1164.all;
+use IEEE.numeric_std.all;
+
+
+entity conf_LFSR is
+port ( clk : in std_logic;
+rst : in std_logic;
+poly  :in std_logic_vector(15 downto 0);
+quit:out std_logic_vector(15 downto 0));
+end conf_LFSR;
+
+
+architecture behav of conf_LFSR is
+signal deg : integer:=0;
+signal LFSR : std_logic_vector (poly'high downto 0):=(0=>'1',others=>'0');
+signal temp_poly : std_logic_vector (poly'high downto 0);
+signal feedback : std_logic;
+begin
+
+process(poly)
+variable i : integer;
+begin
+--if rising_edge(clk) then 
+	--temp_poly<=poly;
+	i:=poly'high;
+	temp1: loop
+		deg<=i;
+		exit temp1 when poly(i)='1';
+		i:=i-1;
+	end loop;
+--end if;
+end process;
+
+process(clk)
+variable init : std_logic_vector(poly'high downto 0);
+variable temp_LFSR : std_logic_vector(deg downto 0);
+begin
+if rising_edge(clk) then	
+	if rst='1' then
+		init := (others=>'0');
+		init(0) := '1';
+		LFSR<=init;
+	else 
+		temp_LFSR:=LFSR(deg downto 0);
+		temp_LFSR:=feedback & temp_LFSR(deg downto 1);
+		LFSR<=LFSR(poly'high downto deg-1) & temp_LFSR(deg downto 0);
+	end if;
+end if;
+end process;
+
+process(LFSR)
+variable temp_feedback : std_logic;
+begin
+temp_feedback:='0';
+for i in 0 to deg loop
+	if (poly(i)='1') then
+		temp_feedback := temp_feedback xor LFSR(i);
+	end if;	
+end loop;
+feedback <= temp_feedback;
+end process;
+quit <= LFSR;
+end behav;
