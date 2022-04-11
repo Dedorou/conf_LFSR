@@ -2,7 +2,7 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.all;
 use IEEE.numeric_std.all;
 
-entity conf_LFSR is 
+entity LFSR is 
 generic(
 	BITNES : natural := 32;
 	TEST : natural := 5 -- log2(bitnes) СЃ РѕРєСЂСѓРіР»РµРЅРёРµРј  Р±РѕР»СЊС€СѓСЋ СЃС‚РѕСЂРѕРЅСѓ
@@ -13,32 +13,38 @@ port(
 	polynom_WE : in std_logic;
 	outputLFSR : out std_logic_vector(BITNES-1 downto 0)
 );
-end conf_LFSR;
+end LFSR;
 
 
-architecture RTL of conf_LFSR is
-signal configure_register_output : std_logic_vector(BITNES-1 downto 0);
+architecture RTL of LFSR is
+signal alpha : std_logic_vector(BITNES-1 downto 0);
+signal beta : std_logic_vector(BITNES-1 downto 0);
 signal LFSR : std_logic_vector(BITNES-1 downto 0);
-signal coder_ind : integer :=0;
+signal coder_ind : integer;
 signal LFSR_shift_in : std_logic;
+signal MUX_output : std_logic;
 begin
 
 POLYNOM_REGISTER: process(clk) 
 begin
 if(rising_edge(clk)) then
     if(reset = '1') then
-        configure_register_output <= (others => '0');
+        alpha <= (others => '0');
+        beta<= (others => '0');
     else
 	   if(polynom_WE = '1') then	
-			configure_register_output <= input_polynom;
+			alpha <= input_polynom;
+			beta <= not input_polynom;
+			beta(coder_ind)<='0';
 	   else
-			configure_register_output <= configure_register_output;
+			alpha <= alpha;
+			beta <= beta;
 	   end if;	
 	end if;
 end if;
 end process;
 
-process(input_polynom) 
+prior_coder: process(input_polynom) 
 begin
 	for k in BITNES-1 downto 0 loop
 		if(input_polynom(k) = '1') then
@@ -47,37 +53,28 @@ begin
 	end loop;
 end process;
 
-LFSR_module: process(clk, coder_ind)
+LFSR_module: process(clk)
 variable LFSR_output : std_logic_vector(BITNES-1 downto 0) := (0 => '1',others => '0');
 begin
 if(rising_edge(clk)) then
     if(reset = '1') then
         LFSR_output := (0 => '1',others => '0');
     else
-       for k in 1 to BITNES-1 loop 
-         if k<=(coder_ind-1) then
-            LFSR_output(k):=LFSR_output(k-1);
-         end if;
-       end loop;
-	   LFSR_output(0) := LFSR_shift_in;
+	   LFSR_output := LFSR_output(BITNES-2 downto 0) & LFSR_shift_in;
 	end if;
 end if;
 	outputLFSR <= LFSR_output;
 	LFSR <= LFSR_output;
 end process;
 
-process(LFSR, configure_register_output)
+process(LFSR, alpha ,beta)
 variable tmp : std_logic_vector(BITNES downto 0);
 begin
 	tmp := (others => '0');
 	for k in BITNES-1 downto 0 loop
-	   if k<=(coder_ind-1) then
-		tmp(k) := tmp(k+1) xor (configure_register_output(k) and LFSR(k));
-	   end if;
+		tmp(k) := (tmp(k+1) and beta(k)) xor (alpha(k) and LFSR(k));
 	end loop;
     LFSR_shift_in <= tmp(0);
 end process;
-
-
 
 end RTL;
