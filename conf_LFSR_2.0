@@ -2,54 +2,143 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.all;
 use IEEE.numeric_std.all;
 
-
-entity conf_mem is
+entity conf_LFSR is
 generic(
 bitnes : natural := 9);
 port(
 clk : in std_logic;
 rst : in std_logic;
+input : in std_logic;
+load : in std_logic;
+go : in std_logic;
+adr : in std_logic;
+LFSR : out std_logic_vector(bitnes-1 downto 0));
+end conf_LFSR;
+
+
+
+architecture RTL of conf_LFSR is
+
+component spec_trigg is 
+port(
+clk : in std_logic;
+rst : in std_logic;
+en : in std_logic;
+sd_in : in std_logic;
+fb_in : in std_logic;
+alpha_in : in std_logic;
+beta_in : in std_logic;
+sd_out : out std_logic;
+fb_out : out std_logic);
+end component;
+
+component conf_mem is
+generic(
+bitnes : natural := bitnes);
+port(
+clk : in std_logic;
+rst : in std_logic;
 en : in std_logic;
 cd_in : in std_logic;
-reg_alpha : out std_logic_vector(bitnes-1 downto 0);
-reg_beta : out std_logic_vector(bitnes -1 downto 1));
-end conf_mem;
+reg_alpha : out std_logic_vector(bitnes downto 0);
+reg_beta : out std_logic_vector(bitnes downto 1));
+end component;
 
-architecture RTL of conf_mem is
+signal mem_en : std_logic;
+signal mem_in : std_logic;
+signal LFSR_en : std_logic;
+signal feedback : std_logic_vector (bitnes downto 1);
+--signal feedback_1 : std_logic;
+signal LFSR_in : std_logic;
+signal temp_LFSR : std_logic_vector (bitnes downto 1);
+signal temp_input : std_logic;
+signal temp_mux : std_logic;
+signal temp_reg_alpha : std_logic_vector(bitnes downto 0);
+signal temp_reg_beta : std_logic_vector(bitnes downto 1);
 
-signal temp_alpha_reg : std_logic_vector(bitnes-1 downto 0);
-signal temp_beta_reg : std_logic_vector(bitnes-1 downto 1);
-signal beta_en : std_logic;
-signal flag_feedback : std_logic;
-signal flag_en : std_logic;
-begin 
-shift: process( CLK, RST, EN, cd_in, beta_en )
+
+
 begin
-	if rst ='1' then 
-		temp_alpha_reg<=(others => '0');
-		temp_beta_reg<=(others=>'0');
-		flag_feedback<='0';
-		beta_en<='0';
-	elsif rising_edge(clk) then
-		if en ='1'  then
-			temp_alpha_reg <= temp_alpha_reg(temp_alpha_reg'high-1 downto temp_alpha_reg'low) & cd_in;
-		else
-			temp_alpha_reg <= temp_alpha_reg;
-		end if;
-		if beta_en ='1'  then
-			temp_beta_reg <= temp_beta_reg(temp_beta_reg'high-1 downto temp_beta_reg'low) & '1';
-		else
-			temp_beta_reg <= temp_beta_reg;
-		end if;
-		if flag_en ='1' then
-			flag_feedback<='1';
-		else 
-	   		flag_feedback<=flag_feedback;
-		end if;	
-	beta_en<=flag_feedback and en;
-	end if;		
-flag_en <= (not flag_feedback and cd_in and en);
+
+mem_reg : conf_mem generic map(
+bitnes => bitnes)
+port map(
+clk =>clk,
+rst =>rst,
+en =>mem_en,
+cd_in =>mem_in,
+reg_alpha =>temp_reg_alpha,
+reg_beta => temp_reg_beta );
+
+
+outerloop : for i in 1 to bitnes generate 
+	interloop1 : if i=1 generate 
+	LFSR_reg : spec_trigg port map(
+		clk =>clk,
+		rst =>rst,
+		en =>LFSR_en,
+		sd_in =>LFSR_in,
+		fb_in =>feedback(i+1),
+		alpha_in =>temp_reg_alpha(i),
+		beta_in =>temp_reg_beta(i),
+		sd_out =>temp_LFSR(i),
+		fb_out =>feedback(i));
+	end generate interloop1;
+	interloop2 : if i >1 and i <bitnes generate
+	LFSR_reg : spec_trigg port map(
+		clk =>clk,
+		rst =>rst,
+		en =>LFSR_en,
+		sd_in =>temp_LFSR(i-1),
+		fb_in =>feedback(i+1),
+		alpha_in =>temp_reg_alpha(i),
+		beta_in =>temp_reg_beta(i),
+		sd_out =>temp_LFSR(i),
+		fb_out =>feedback(i));
+	end generate interloop2;
+	interloop3 : if i =bitnes generate
+	LFSR_reg : spec_trigg port map(
+		clk =>clk,
+		rst =>rst,
+		en =>LFSR_en,
+		sd_in =>temp_LFSR(i-1),
+		fb_in =>temp_LFSR(i),
+		alpha_in =>temp_reg_alpha(i),
+		beta_in =>temp_reg_beta(i),
+		sd_out =>temp_LFSR(i),
+		fb_out =>feedback(i));
+	end generate interloop3;
+end generate outerloop;
+
+
+
+process (clk, rst, input, load, go, adr)
+begin
+
+if load ='1' then
+	LFSR_en<=adr;
+elsif load ='0' then
+	LFSR_en<=go;
+end if;
+
+if adr = '0' then
+	mem_in<=input;
+	mem_en<=load;
+elsif adr ='1' then
+	temp_input<=input;
+	temp_mux<=load;
+end if;
+
+--if temp_mux ='0' then
+--	LFSR_in<=temp_input xor (feedback(1) and reg_alpha(0));
+--elsif temp_mux='1' then 
+--	LFSR_in<=feedback(1) xor reg_alpha(0);
+--end if;
+
+
+
+
+
 end process;
-reg_alpha<=temp_alpha_reg;
-reg_beta<=temp_beta_reg;
+
 end RTL;
