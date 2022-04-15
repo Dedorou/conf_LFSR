@@ -1,0 +1,38 @@
+library IEEE;
+use IEEE.STD_LOGIC_1164.all;
+use IEEE.numeric_std.all;
+
+
+entity spec_trigger is 
+port(
+clk : in std_logic;
+rst : in std_logic;
+en : in std_logic;
+sd_in : in std_logic;
+fb_in : in std_logic;
+alpha_in : in std_logic;
+beta_in : in std_logic;
+sd_out : out std_logic;
+fb_out : out std_logic);
+end sper_trigger;
+
+architecture RTL of spec_trigger is 
+signal dff : std_logic;
+signal and0 : std_logic;
+signal and1 : std_logic; 
+begin
+PDFF: process( CLK, RST, EN, sd_in )
+begin
+if ( RST = '1' ) then
+dff <= '0';
+elsif rising_edge( CLK ) then
+if ( EN = '1' ) then
+dff <= sd_in;
+end if;
+end if;
+end process;
+sd_out <= dff;
+and0 <= dff when ( alpha = '1' ) else '0';
+and1 <= fb_in when ( beta = '1' ) else '0';
+fb_out <= and0 xor and1;
+end RTL;
