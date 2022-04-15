@@ -2,7 +2,6 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.all;
 use IEEE.numeric_std.all;
 
-
 entity conf_mem is
 generic(
 bitnes : natural := 9);
@@ -11,16 +10,15 @@ clk : in std_logic;
 rst : in std_logic;
 en : in std_logic;
 cd_in : in std_logic;
-reg_alpha : out std_logic_vector(bitnes-1 downto 0);
-reg_beta : out std_logic_vector(bitnes -1 downto 1));
+reg_alpha : out std_logic_vector(bitnes downto 0);
+reg_beta : out std_logic_vector(bitnes  downto 1));
 end conf_mem;
 
 architecture RTL of conf_mem is
-
-signal temp_alpha_reg : std_logic_vector(bitnes-1 downto 0);
-signal temp_beta_reg : std_logic_vector(bitnes-1 downto 1);
+signal temp_alpha_reg : std_logic_vector(bitnes downto 0);
+signal temp_beta_reg : std_logic_vector(bitnes downto 1);
 signal beta_en : std_logic;
-signal flag_feedback : std_logic;
+signal flag_feedback : std_logic; 
 signal flag_en : std_logic;
 begin 
 shift: process( CLK, RST, EN, cd_in, beta_en )
