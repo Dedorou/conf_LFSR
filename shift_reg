@@ -1,0 +1,75 @@
+----------------------------------------------------------------------------------
+-- Company: 
+-- Engineer: 
+-- 
+-- Create Date: 19.04.2022 17:25:34
+-- Design Name: 
+-- Module Name: shift_reg - Behavioral
+-- Project Name: 
+-- Target Devices: 
+-- Tool Versions: 
+-- Description: 
+-- 
+-- Dependencies: 
+-- 
+-- Revision:
+-- Revision 0.01 - File Created
+-- Additional Comments:
+-- 
+----------------------------------------------------------------------------------
+
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+
+-- Uncomment the following library declaration if using
+-- arithmetic functions with Signed or Unsigned values
+--use IEEE.NUMERIC_STD.ALL;
+
+-- Uncomment the following library declaration if instantiating
+-- any Xilinx leaf cells in this code.
+--library UNISIM;
+--use UNISIM.VComponents.all;
+
+entity shift_reg is
+generic(bitnes : natural := 8);
+ Port (
+clk : in std_logic;
+rst : in std_logic;
+en : in std_logic;
+input_enable : in std_logic;
+input : in natural;
+shift : out natural);
+end shift_reg;
+
+architecture rtl of shift_reg is
+type nat_array is array (bitnes-1 downto 0) of natural;
+signal nat_array_temp : nat_array; 
+begin
+process(CLK, RST, EN, input)
+variable temp : natural;
+begin
+if(rising_edge(clk)) then
+    if rst = '1' then
+        for k in bitnes-1 downto 0 loop
+            nat_array_temp(k)<=1;
+        end loop;
+    elsif input_enable ='1' then
+         for k in bitnes-1 downto 1 loop
+            nat_array_temp(k)<=nat_array_temp(k-1);
+        end loop;
+        nat_array_temp(0)<=input;
+    elsif en = '1' then
+        temp:=nat_array_temp(bitnes-1);
+        for k in bitnes-1 downto 1 loop
+            nat_array_temp(k)<=nat_array_temp(k-1);
+        end loop;
+        nat_array_temp(0)<=temp;
+    else
+        nat_array_temp <= nat_array_temp;
+    end if;
+end if;
+shift<=nat_array_temp(bitnes-1);
+end process;
+
+end rtl;
