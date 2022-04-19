@@ -4,7 +4,7 @@ use IEEE.STD_LOGIC_1164.all;
 
 entity generic_LFSR is
 generic (
-poly : std_logic_vector := "1000000001011110" );
+poly : std_logic_vector := "10100" );
 port ( clk : in std_logic;
 rst : in std_logic;
 output : out std_logic_vector(poly'high downto 0));
@@ -19,7 +19,8 @@ variable init : std_logic_vector( poly'high downto 0 );
 begin
 if rising_edge( CLK ) then
 	if ( RST = '1' ) then
-		init:=(0=>'1',others=>'0');
+		init:=(others=>'0');
+		init(0):='1';
 		temp_output <= init;
 	else		
 		temp_output <= feedback & temp_output(poly'high downto 1);
