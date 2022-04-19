@@ -1,0 +1,41 @@
+library IEEE;
+use IEEE.STD_LOGIC_1164.all;
+
+
+entity generic_LFSR is
+generic (
+poly : std_logic_vector := "1000000001011110" );
+port ( clk : in std_logic;
+rst : in std_logic;
+output : out std_logic_vector(poly'high downto 0));
+end generic_LFSR;
+
+architecture behavioral of generic_LFSR is
+signal feedback : std_logic;
+signal temp_output : std_logic_vector( poly'high downto 0);
+begin
+process(clk)
+variable init : std_logic_vector( poly'high downto 0 );
+begin
+if rising_edge( CLK ) then
+	if ( RST = '1' ) then
+		init:=(0=>'1',others=>'0');
+		temp_output <= init;
+	else		
+		temp_output <= feedback & temp_output(poly'high downto 1);
+	end if;
+end if;
+end process;
+process (temp_output)
+variable temp_feedback : std_logic;
+begin
+temp_feedback:='0';
+for i in poly'range loop
+	if (poly(i)='1') then
+		temp_feedback := temp_feedback xor temp_output(i);
+	end if;	
+end loop;
+feedback <= temp_feedback;
+end process;
+output <= temp_output; 
+end behavioral;
